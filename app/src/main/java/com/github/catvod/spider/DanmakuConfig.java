@@ -2,6 +2,7 @@ package com.github.catvod.spider;
 
 import org.json.JSONObject;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -47,7 +48,7 @@ public class DanmakuConfig {
     public void updateFromJson(JSONObject json) {
         if (json == null) return;
         if (json.has("apiUrl")) {
-            apiUrls.add(json.optString("apiUrl"));
+            apiUrls.addAll(Arrays.asList(json.optString("apiUrl").split(",")));
         }
         if (json.has("lpWidth")) {
             setLpWidth((float) json.optDouble("lpWidth", lpWidth));

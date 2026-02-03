@@ -15,6 +15,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -63,7 +64,7 @@ public class DanmakuSpider extends Spider {
         DanmakuConfig config = DanmakuConfigManager.loadConfig(context);
         if (!TextUtils.isEmpty(extend)) {
             if (extend.startsWith("http")) {
-                config.getApiUrls().add(extend);
+                config.getApiUrls().addAll(Arrays.asList(extend.split(",")));
             } else if (extend.startsWith("{") && extend.endsWith("}")) {
                 try {
                     JSONObject jsonObject = new JSONObject(extend);
