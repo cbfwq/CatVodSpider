@@ -1470,7 +1470,10 @@ public class DanmakuScanner {
             String[] options = new String[] {
                     "📱 远程搜索/输入",
                     "🔄 Auto推送开关",
-                    "⚙️ 弹幕配置"
+                    "\uD83D\uDCAC 弹幕配置",
+                    "\uD83C\uDFA8 布局配置",
+                    "✨ 弹幕UI风格",
+                    "\uD83D\uDCDD 查看日志"
             };
 
             builder.setItems(options, new DialogInterface.OnClickListener() {
@@ -1502,9 +1505,21 @@ public class DanmakuScanner {
 
                             break;
 
-                        case 2: // 设置
+                        case 2: // 弹幕设置
                             DanmakuSpider.log("[菜单] 打开弹幕设置");
                             DanmakuUIHelper.showConfigDialog(activity);
+                            break;
+                        case 3: // 布局配置
+                            DanmakuSpider.log("[菜单] 打开布局配置");
+                            DanmakuUIHelper.showLpConfigDialog(activity);
+                            break;
+                        case 4: // 弹幕UI风格
+                            DanmakuSpider.log("[菜单] 打开弹幕UI风格");
+                            DanmakuUIHelper.showDanmakuStyleDialog(activity);
+                            break;
+                        case 5: // 查看日志
+                            DanmakuSpider.log("[菜单] 打开查看日志");
+                            DanmakuUIHelper.showLogDialog(activity);
                             break;
                     }
                 }
