@@ -1482,7 +1482,7 @@ public class DanmakuScanner {
                     switch (which) {
                         case 0: // 远程搜索/输入
                             DanmakuSpider.log("[菜单] 打开远程搜索二维码");
-                            String qrUrl = "http://" + NetworkUtils.getLocalIpAddress() + ":9888";
+                            String qrUrl = "http://" + NetworkUtils.getLocalIpAddress() + ":9810";
                             DanmakuUIHelper.showQRCodeDialog(activity, qrUrl);
                             break;
 
