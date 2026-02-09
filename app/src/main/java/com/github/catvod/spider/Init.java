@@ -42,11 +42,8 @@ public class Init {
         get().app = ((Application) context);
         Proxy.init();
 
-        // 启动GoProxy
-        GoProxySpider.initGoProxy(context);
-
-        // 启动Go代理健康检查
-        GoProxySpider.startHealthCheck(context);
+        // 初始化并启动GoProxy（如果需要），并启动健康检查
+        GoProxyManager.initialize(context);
 
         // 删除弹幕缓存
         DanmakuSpider.clearCache(context);
