@@ -164,10 +164,27 @@ public class GoProxyManager {
 
     public static synchronized boolean isProxyHealthy() {
         try {
-            String response = OkHttp.string(HEALTH_CHECK_URL,  1000);
-            JsonObject json = new Gson().fromJson(response, JsonObject.class);
-            SpiderDebug.log("GoProxy 健康检查结果: " + json);
-            return json != null && json.has("status") && "healthy".equals(json.get("status").getAsString());
+            String response = OkHttp.string(HEALTH_CHECK_URL, 1000);
+            SpiderDebug.log("GoProxy 健康检查原始响应: " + response);
+
+            // 支持原版，检查是否为简单的健康状态字符串
+            if ("ok".equalsIgnoreCase(response.trim())) {
+                return true;
+            }
+
+            // 首先尝试解析为JSON对象
+            try {
+                JsonObject json = new Gson().fromJson(response, JsonObject.class);
+                if (json != null && json.has("status")) {
+                    return "healthy".equals(json.get("status").getAsString());
+                }
+            } catch (Exception jsonEx) {
+                // JSON解析失败，继续尝试其他格式
+                SpiderDebug.log("GoProxy 健康检查异常： " + jsonEx.getMessage());
+                return false;
+            }
+
+            return true;
         } catch (Exception e) {
             SpiderDebug.log("GoProxy 健康检查异常: " + e.getMessage());
             return false;
