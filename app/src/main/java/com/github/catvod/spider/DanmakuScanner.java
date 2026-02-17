@@ -1578,9 +1578,9 @@ public class DanmakuScanner {
                             DanmakuSpider.log("[菜单] 打开弹幕UI风格");
                             DanmakuUIHelper.showDanmakuStyleDialog(activity);
                             break;
-                        case 5: // 查看日志
-                            DanmakuSpider.log("[菜单] 打开查看日志");
-                            DanmakuUIHelper.showLogDialog(activity);
+                        case 5: // 查看日志（统一日志查看器）
+                            DanmakuSpider.log("[菜单] 打开统一日志查看器");
+                            DanmakuUIHelper.showUnifiedLogDialog(activity);
                             break;
                     }
 

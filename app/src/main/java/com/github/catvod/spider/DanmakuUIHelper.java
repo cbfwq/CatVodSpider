@@ -649,7 +649,7 @@ public class DanmakuUIHelper {
                     titleLayout.setPadding(dpToPx(activity, 20), dpToPx(activity, 16), dpToPx(activity, 20), dpToPx(activity, 16));
 
                     TextView titleText = new TextView(activity);
-                    titleText.setText("Leo弹幕日志 - 打包时间：2026-02-17 14:03");
+                    titleText.setText("Leo弹幕日志 - 打包时间：2026-02-17 15:13");
                     titleText.setTextSize(20);
                     titleText.setTextColor(Color.WHITE);
                     titleText.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -725,6 +725,213 @@ public class DanmakuUIHelper {
                 }
             }
         });
+    }
+
+    /**
+     * 显示带标签页切换的日志对话框（弹幕日志 + Go代理日志）
+     * @param ctx 上下文
+     */
+    public static void showUnifiedLogDialog(Context ctx) {
+        if (!(ctx instanceof Activity)) {
+            DanmakuSpider.log("错误：Context不是Activity");
+            return;
+        }
+        Activity activity = (Activity) ctx;
+        if (activity.isFinishing() || activity.isDestroyed()) {
+            DanmakuSpider.log("Activity已销毁或正在销毁，不显示日志对话框");
+            return;
+        }
+
+        activity.runOnUiThread(() -> {
+            try {
+                if (activity.isFinishing() || activity.isDestroyed()) {
+                    DanmakuSpider.log("Activity已销毁，不显示日志对话框");
+                    return;
+                }
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+
+                LinearLayout mainLayout = new LinearLayout(activity);
+                mainLayout.setOrientation(LinearLayout.VERTICAL);
+                mainLayout.setBackgroundColor(BACKGROUND_WHITE);
+                mainLayout.setPadding(dpToPx(activity, 20), dpToPx(activity, 16), dpToPx(activity, 20), dpToPx(activity, 16));
+
+                // 标题
+                TextView title = new TextView(activity);
+                title.setText("日志查看器");
+                title.setTextSize(22);
+                title.setTextColor(PRIMARY_COLOR);
+                title.setGravity(Gravity.CENTER);
+                title.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 16));
+                title.setTypeface(null, android.graphics.Typeface.BOLD);
+                mainLayout.addView(title);
+
+                // 判断是否有Go代理
+                final boolean hasGoProxy = GoProxyManager.isGoProxyAssetExists();
+
+                // 页签容器
+                LinearLayout tabContainer = new LinearLayout(activity);
+                tabContainer.setOrientation(LinearLayout.HORIZONTAL);
+                tabContainer.setGravity(Gravity.CENTER);
+                tabContainer.setPadding(0, 0, 0, dpToPx(activity, 12));
+
+                // 当前选中的页签索引（0=弹幕日志，1=Go代理日志）
+                final int[] currentTab = {0};
+                // 当前排序状态（false=正序，true=倒序）
+                final boolean[] isReversed = {false};
+
+                // 弹幕日志页签按钮
+                Button danmakuTabBtn = createTabButton(activity, "弹幕日志", true);
+                LinearLayout.LayoutParams danmakuTabParams = new LinearLayout.LayoutParams(
+                        0, dpToPx(activity, 40), 1);
+                danmakuTabParams.setMargins(0, 0, dpToPx(activity, 4), 0);
+                danmakuTabBtn.setLayoutParams(danmakuTabParams);
+
+                // Go代理日志页签按钮（仅当存在时显示）
+                Button goProxyTabBtn = null;
+                if (hasGoProxy) {
+                    goProxyTabBtn = createTabButton(activity, "Go代理日志", false);
+                    LinearLayout.LayoutParams goProxyTabParams = new LinearLayout.LayoutParams(
+                            0, dpToPx(activity, 40), 1);
+                    goProxyTabParams.setMargins(dpToPx(activity, 4), 0, 0, 0);
+                    goProxyTabBtn.setLayoutParams(goProxyTabParams);
+                }
+
+                tabContainer.addView(danmakuTabBtn);
+                if (goProxyTabBtn != null) {
+                    tabContainer.addView(goProxyTabBtn);
+                }
+                mainLayout.addView(tabContainer);
+
+                // 日志内容显示区域
+                ScrollView scrollView = new ScrollView(activity);
+                scrollView.setBackgroundColor(0xFFF5F5F5);
+                LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 350));
+                scrollView.setLayoutParams(scrollParams);
+                scrollView.setPadding(dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12));
+
+                TextView logText = new TextView(activity);
+                logText.setTextSize(12);
+                logText.setTextColor(TEXT_PRIMARY);
+                logText.setTypeface(android.graphics.Typeface.MONOSPACE);
+                logText.setText(DanmakuSpider.getLogContent());
+                scrollView.addView(logText);
+                mainLayout.addView(scrollView);
+
+                // 按钮区域
+                LinearLayout btnLayout = new LinearLayout(activity);
+                btnLayout.setOrientation(LinearLayout.HORIZONTAL);
+                btnLayout.setGravity(Gravity.CENTER);
+                btnLayout.setPadding(0, dpToPx(activity, 16), 0, 0);
+
+                Button sortButton = createStyledButtonWithBorder(activity, "排序: 正序", PRIMARY_COLOR);
+                Button clearButton = createStyledButtonWithBorder(activity, "清空", PRIMARY_COLOR);
+                Button closeButton = createStyledButton(activity, "关闭", PRIMARY_COLOR);
+
+                LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+                        0, dpToPx(activity, 44), 1);
+                btnParams.setMargins(dpToPx(activity, 4), 0, dpToPx(activity, 4), 0);
+
+                sortButton.setLayoutParams(btnParams);
+                clearButton.setLayoutParams(btnParams);
+                closeButton.setLayoutParams(btnParams);
+
+                btnLayout.addView(sortButton);
+                btnLayout.addView(clearButton);
+                btnLayout.addView(closeButton);
+                mainLayout.addView(btnLayout);
+
+                builder.setView(mainLayout);
+                AlertDialog dialog = builder.create();
+
+                // 页签切换逻辑
+                final Button finalGoProxyTabBtn = goProxyTabBtn;
+                danmakuTabBtn.setOnClickListener(v -> {
+                    currentTab[0] = 0;
+                    updateTabButtonState(danmakuTabBtn, true);
+                    if (finalGoProxyTabBtn != null) {
+                        updateTabButtonState(finalGoProxyTabBtn, false);
+                    }
+                    // 弹幕日志支持倒序
+                    logText.setText(DanmakuSpider.getLogContent(isReversed[0]));
+                    // 倒序时滚动到顶部，正序时滚动到底部
+                    scrollView.post(() -> scrollView.fullScroll(isReversed[0] ? ScrollView.FOCUS_UP : ScrollView.FOCUS_DOWN));
+                });
+
+                if (goProxyTabBtn != null) {
+                    final Button finalGoProxyTabBtnForClick = goProxyTabBtn;
+                    goProxyTabBtn.setOnClickListener(v -> {
+                        currentTab[0] = 1;
+                        updateTabButtonState(danmakuTabBtn, false);
+                        updateTabButtonState(finalGoProxyTabBtnForClick, true);
+                        // Go代理日志支持倒序
+                        logText.setText(GoProxyManager.getLogContent(isReversed[0]));
+                        // 倒序时滚动到顶部，正序时滚动到底部
+                        scrollView.post(() -> scrollView.fullScroll(isReversed[0] ? ScrollView.FOCUS_UP : ScrollView.FOCUS_DOWN));
+                    });
+                }
+
+                // 排序按钮逻辑（弹幕日志和Go代理日志都支持倒序）
+                sortButton.setOnClickListener(v -> {
+                    isReversed[0] = !isReversed[0];
+                    sortButton.setText(isReversed[0] ? "排序: 倒序" : "排序: 正序");
+
+                    if (currentTab[0] == 0) {
+                        // 弹幕日志支持倒序
+                        logText.setText(DanmakuSpider.getLogContent(isReversed[0]));
+                    } else {
+                        // Go代理日志支持倒序
+                        logText.setText(GoProxyManager.getLogContent(isReversed[0]));
+                    }
+                    // 倒序时滚动到顶部，正序时滚动到底部
+                    scrollView.post(() -> scrollView.fullScroll(isReversed[0] ? ScrollView.FOCUS_UP : ScrollView.FOCUS_DOWN));
+                });
+
+                // 清空按钮逻辑
+                clearButton.setOnClickListener(v -> {
+                    if (currentTab[0] == 0) {
+                        DanmakuSpider.clearLogs();
+                        logText.setText(DanmakuSpider.getLogContent(isReversed[0]));
+                    } else {
+                        GoProxyManager.clearLogs();
+                        logText.setText(GoProxyManager.getLogContent(isReversed[0]));
+                    }
+                });
+
+                closeButton.setOnClickListener(v -> dialog.dismiss());
+
+                safeShowDialog(activity, dialog);
+
+                // 初始滚动到底部（正序时）
+                scrollView.post(() -> scrollView.fullScroll(isReversed[0] ? ScrollView.FOCUS_UP : ScrollView.FOCUS_DOWN));
+
+            } catch (Exception e) {
+                DanmakuSpider.log("显示统一日志对话框异常: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    // 创建页签按钮
+    private static Button createTabButton(Activity activity, String text, boolean isActive) {
+        Button button = new Button(activity);
+        button.setText(text);
+        button.setTextSize(14);
+        button.setTypeface(null, android.graphics.Typeface.BOLD);
+        updateTabButtonState(button, isActive);
+        return button;
+    }
+
+    // 更新页签按钮状态
+    private static void updateTabButtonState(Button button, boolean isActive) {
+        if (isActive) {
+            button.setTextColor(Color.WHITE);
+            button.setBackground(createRoundedBackgroundDrawable(PRIMARY_COLOR));
+        } else {
+            button.setTextColor(PRIMARY_COLOR);
+            button.setBackground(createRoundedBorderDrawable(PRIMARY_COLOR));
+        }
     }
 
 

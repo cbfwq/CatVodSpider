@@ -136,8 +136,27 @@ public class DanmakuSpider extends Spider {
     }
 
     public static String getLogContent() {
+        return getLogContent(false);
+    }
+
+    /**
+     * 获取日志内容（支持倒序）
+     * @param reverse 是否倒序
+     * @return 日志内容字符串
+     */
+    public static String getLogContent(boolean reverse) {
         StringBuilder sb = new StringBuilder();
-        for (String s : logBuffer) sb.append(s).append("\n");
+        if (reverse) {
+            // 倒序输出
+            for (int i = logBuffer.size() - 1; i >= 0; i--) {
+                sb.append(logBuffer.get(i)).append("\n");
+            }
+        } else {
+            // 正序输出
+            for (String s : logBuffer) {
+                sb.append(s).append("\n");
+            }
+        }
         return sb.toString();
     }
 
@@ -176,8 +195,8 @@ public class DanmakuSpider extends Spider {
                     config.isAutoPushEnabled() ? "已开启" : "已关闭");
             list.put(autoPushVod);
 
-            // 创建查看日志按钮
-            JSONObject logVod = createVod("log", "查看日志", "", "调试信息");
+            // 创建查看日志按钮（统一日志查看器）
+            JSONObject logVod = createVod("log", "查看日志", "", "弹幕/Go代理日志");
             list.put(logVod);
 
             // 创建布局配置按钮
@@ -247,7 +266,7 @@ public class DanmakuSpider extends Spider {
                                     // 重新加载页面以更新状态显示
                                     refreshCategoryContent(ctx);
                                 } else if (id.equals("log")) {
-                                    DanmakuUIHelper.showLogDialog(ctx);
+                                    DanmakuUIHelper.showUnifiedLogDialog(ctx);
                                 } else if (id.equals("lp_config")) {
                                     DanmakuUIHelper.showLpConfigDialog(ctx);
                                 } else if (id.equals("danmaku_style")) {
@@ -301,7 +320,7 @@ public class DanmakuSpider extends Spider {
             String proxyStatusText = GoProxyManager.isProxyRunning.get() ? proxyStatus + " | " + proxyHealth : proxyStatus;
             vod.put("vod_remarks", id.equals("auto_push") ?
                     (config.isAutoPushEnabled() ? "已开启" : "已关闭") :
-                    id.equals("log") ? "调试信息" : id.equals("lp_config") ? "调整弹窗大小和透明度" :
+                    id.equals("log") ? "弹幕/Go代理日志" : id.equals("lp_config") ? "调整弹窗大小和透明度" :
                             id.equals("danmaku_style") ? "当前: " + config.getDanmakuStyle() :
                             id.equals("proxy_status") ? proxyStatusText :
                             id.equals("proxy_restart") ? "点击重启代理服务" : "请稍候...");
