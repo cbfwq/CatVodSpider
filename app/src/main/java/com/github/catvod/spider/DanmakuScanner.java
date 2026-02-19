@@ -1528,9 +1528,9 @@ public class DanmakuScanner {
             // 只有当Go代理资源文件存在时才添加相关按钮
             final boolean isGoProxyExists = GoProxyManager.isGoProxyAssetExists();
             if (isGoProxyExists) {
-                final String proxyStatus = GoProxyManager.isProxyRunning.get() ? "运行中" : "已停止";
-                final String proxyHealth = GoProxyManager.isProxyHealthy() ? "健康" : "异常";
-                final String proxyStatusText = GoProxyManager.isProxyRunning.get() ? proxyStatus + " | " + proxyHealth : proxyStatus;
+                String proxyStatus = GoProxyManager.isProxyRunning.get() ? "运行中" : "已停止";
+                String proxyHealth = GoProxyManager.isProxyHealthy() ? "健康" : "异常";
+                String proxyStatusText = GoProxyManager.isProxyRunning.get() ? proxyStatus + " | " + proxyHealth : proxyStatus;
                 optionsList.add("🔌 Go代理状态 [" + proxyStatusText + "]");
                 optionsList.add("🔄 重启Go代理");
             }

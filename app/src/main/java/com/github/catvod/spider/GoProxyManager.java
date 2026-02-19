@@ -176,11 +176,26 @@ public class GoProxyManager {
 
     public static synchronized boolean isProxyHealthy() {
         try {
+            // 记录请求开始时间
+            long startTime = System.currentTimeMillis();
             String response = OkHttp.string(HEALTH_CHECK_URL, 1000);
-            log("GoProxy 健康检查原始响应: " + response);
+            long elapsedTime = System.currentTimeMillis() - startTime;
+
+            // 检查是否超时（返回空字符串且耗时接近或超过超时阈值）
+            if (TextUtils.isEmpty(response) && elapsedTime >= 1000) {
+                log("GoProxy 健康检查超时，耗时: " + elapsedTime + "ms (超时阈值: 1000ms)");
+                return false;
+            }
+
+            // 检查空响应（非超时情况）
+            if (TextUtils.isEmpty(response)) {
+                log("GoProxy 健康检查失败，返回空响应，耗时: " + elapsedTime + "ms");
+                return false;
+            }
 
             // 支持原版，检查是否为简单的健康状态字符串
             if ("ok".equalsIgnoreCase(response.trim())) {
+                log("GoProxy 响应为简单字符串，已确认为健康状态，耗时: " + elapsedTime + "ms");
                 return true;
             }
 
@@ -188,12 +203,16 @@ public class GoProxyManager {
             try {
                 JsonObject json = new Gson().fromJson(response, JsonObject.class);
                 if (json != null && json.has("status")) {
-                    return "healthy".equals(json.get("status").getAsString());
+                    boolean isHealthy = "healthy".equals(json.get("status").getAsString());
+                    log("GoProxy 响应为JSON对象，健康状态: " + isHealthy + "，耗时: " + elapsedTime + "ms");
+                    return isHealthy;
                 }
             } catch (Exception jsonEx) {
                 // JSON解析失败，继续尝试其他格式
-                log("GoProxy 健康检查异常： " + jsonEx.getMessage());
+                log("GoProxy 健康检查JSON解析失败： " + jsonEx.getMessage());
             }
+
+            log("GoProxy 健康检查失败，原始响应: " + response + "，耗时: " + elapsedTime + "ms");
 
             return false;
         } catch (Exception e) {
