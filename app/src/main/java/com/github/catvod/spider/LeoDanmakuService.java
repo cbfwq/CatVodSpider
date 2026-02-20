@@ -553,7 +553,7 @@ public class LeoDanmakuService {
 
             // 步骤2: 数据验证成功，开始推送
             String localIp = NetworkUtils.getLocalIpAddress();
-            String pushUrl = "http://" + localIp + ":9978/action?do=refresh&type=danmaku&path=" +
+            String pushUrl = "http://" + localIp + ":" + Utils.getPort() + "/action?do=refresh&type=danmaku&path=" +
                     URLEncoder.encode(danmakuItem.getDanmakuUrl(), "UTF-8");
             DanmakuSpider.log("推送地址: " + pushUrl);
 

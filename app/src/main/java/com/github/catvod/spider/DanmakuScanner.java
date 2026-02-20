@@ -239,7 +239,7 @@ public class DanmakuScanner {
 
     @Nullable
     private static Media getMedia() {
-        String mediaJson = OkHttp.string("http://127.0.0.1:9978/media");
+        String mediaJson = OkHttp.string("http://127.0.0.1:" + Utils.getPort() + "/media");
 
         if (TextUtils.isEmpty(mediaJson) || mediaJson.equals("{}")) {
             return null;

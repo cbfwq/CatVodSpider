@@ -95,4 +95,16 @@ public class Utils {
             activity.runOnUiThread(runnable);
         }
     }
+
+    public static int getPort() {
+        Class<?> clz = null;
+        int port = 9978;
+        try {
+            clz = Class.forName("com.github.catvod.Proxy");
+            port = (int) clz.getMethod("getPort").invoke(null);
+        } catch (Exception e) {
+            DanmakuSpider.log("❌ 获取代理端口异常: " + e.getMessage());
+        }
+        return port;
+    }
 }
