@@ -510,7 +510,7 @@ public class DanmakuUIHelper {
     }
 
 
-    // 创建带边框的按钮 - 改进版本
+    // 创建带边框的按钮 - 改进版本（排序、清空按钮使用）
     private static Button createStyledButtonWithBorder(Activity activity, String text, int color) {
         Button button = new Button(activity);
         button.setText(text);
@@ -518,8 +518,11 @@ public class DanmakuUIHelper {
         button.setBackground(createRoundedBorderDrawable(color));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
+        // 启用焦点支持电视端
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
 
-        // 添加焦点效果
+        // 添加焦点效果 - 使用边框高亮而不是缩放
         button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
@@ -527,14 +530,10 @@ public class DanmakuUIHelper {
                     // 获得焦点时显示填充背景
                     ((Button) v).setBackground(createRoundedBackgroundDrawable(PRIMARY_LIGHT));
                     ((Button) v).setTextColor(PRIMARY_COLOR);
-                    v.setScaleX(1.08f);
-                    v.setScaleY(1.08f);
                 } else {
                     // 失去焦点时恢复边框样式
                     ((Button) v).setBackground(createRoundedBorderDrawable(color));
                     ((Button) v).setTextColor(color);
-                    v.setScaleX(1.0f);
-                    v.setScaleY(1.0f);
                 }
             }
         });
@@ -542,7 +541,7 @@ public class DanmakuUIHelper {
         return button;
     }
 
-    // 创建实心按钮 - 改进版本
+    // 创建实心按钮 - 改进版本（关闭按钮使用，无特殊焦点高亮）
     private static Button createStyledButton(Activity activity, String text, int backgroundColor) {
         Button button = new Button(activity);
         button.setText(text);
@@ -550,23 +549,9 @@ public class DanmakuUIHelper {
         button.setBackground(createRoundedBackgroundDrawable(backgroundColor));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
-
-        // 添加焦点效果
-        button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) {
-                    v.setBackground(createRoundedBackgroundDrawable(0xFF0052CC));
-                    ((Button) v).setTextColor(Color.WHITE);
-                    v.setScaleX(1.08f);
-                    v.setScaleY(1.08f);
-                } else {
-                    ((Button) v).setBackground(createRoundedBackgroundDrawable(backgroundColor));
-                    v.setScaleX(1.0f);
-                    v.setScaleY(1.0f);
-                }
-            }
-        });
+        // 启用焦点支持电视端，但保持原有样式，不做特殊高亮
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
 
         return button;
     }
@@ -585,6 +570,15 @@ public class DanmakuUIHelper {
         android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
         drawable.setColor(Color.TRANSPARENT);
         drawable.setStroke(2, color);
+        drawable.setCornerRadius(12);
+        return drawable;
+    }
+
+    // 创建带粗边框的焦点页签背景（用于电视端焦点高亮）
+    private static android.graphics.drawable.Drawable createFocusedTabDrawable(int color) {
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        drawable.setColor(color);
+        drawable.setStroke(4, PRIMARY_COLOR); // 加粗外边框
         drawable.setCornerRadius(12);
         return drawable;
     }
@@ -649,7 +643,7 @@ public class DanmakuUIHelper {
                     titleLayout.setPadding(dpToPx(activity, 20), dpToPx(activity, 16), dpToPx(activity, 20), dpToPx(activity, 16));
 
                     TextView titleText = new TextView(activity);
-                    titleText.setText("Leo弹幕日志 - 打包时间：2026-02-20 19:25");
+                    titleText.setText("Leo弹幕日志 - 打包时间：2026-02-20 21:03");
                     titleText.setTextSize(20);
                     titleText.setTextColor(Color.WHITE);
                     titleText.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -754,36 +748,52 @@ public class DanmakuUIHelper {
                 LinearLayout mainLayout = new LinearLayout(activity);
                 mainLayout.setOrientation(LinearLayout.VERTICAL);
                 mainLayout.setBackgroundColor(BACKGROUND_WHITE);
-                mainLayout.setPadding(dpToPx(activity, 20), dpToPx(activity, 16), dpToPx(activity, 20), dpToPx(activity, 16));
+                mainLayout.setPadding(dpToPx(activity, 20), dpToPx(activity, 12), dpToPx(activity, 20), dpToPx(activity, 12));
 
                 // 标题
                 TextView title = new TextView(activity);
                 title.setText("日志查看器");
-                title.setTextSize(22);
+                title.setTextSize(20);
                 title.setTextColor(PRIMARY_COLOR);
                 title.setGravity(Gravity.CENTER);
-                title.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 16));
+                title.setPadding(0, dpToPx(activity, 4), 0, dpToPx(activity, 8));
                 title.setTypeface(null, android.graphics.Typeface.BOLD);
                 mainLayout.addView(title);
 
                 // 判断是否有Go代理
                 final boolean hasGoProxy = GoProxyManager.isGoProxyAssetExists();
 
-                // 页签容器
-                LinearLayout tabContainer = new LinearLayout(activity);
-                tabContainer.setOrientation(LinearLayout.HORIZONTAL);
-                tabContainer.setGravity(Gravity.CENTER);
-                tabContainer.setPadding(0, 0, 0, dpToPx(activity, 12));
-
                 // 当前选中的页签索引（0=弹幕日志，1=Go代理日志）
                 final int[] currentTab = {0};
                 // 当前排序状态（false=正序，true=倒序）
                 final boolean[] isReversed = {false};
 
+                // 日志内容显示区域 - 使用权重自适应高度
+                ScrollView scrollView = new ScrollView(activity);
+                scrollView.setBackgroundColor(0xFFF5F5F5);
+                LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 1);
+                scrollView.setLayoutParams(scrollParams);
+                scrollView.setPadding(dpToPx(activity, 10), dpToPx(activity, 10), dpToPx(activity, 10), dpToPx(activity, 10));
+
+                TextView logText = new TextView(activity);
+                logText.setTextSize(11);
+                logText.setTextColor(TEXT_PRIMARY);
+                logText.setTypeface(android.graphics.Typeface.MONOSPACE);
+                logText.setText(DanmakuSpider.getLogContent());
+                scrollView.addView(logText);
+                mainLayout.addView(scrollView);
+
+                // 页签容器 - 放在日志区域下方
+                LinearLayout tabContainer = new LinearLayout(activity);
+                tabContainer.setOrientation(LinearLayout.HORIZONTAL);
+                tabContainer.setGravity(Gravity.CENTER);
+                tabContainer.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 8));
+
                 // 弹幕日志页签按钮
                 Button danmakuTabBtn = createTabButton(activity, "弹幕日志", true);
                 LinearLayout.LayoutParams danmakuTabParams = new LinearLayout.LayoutParams(
-                        0, dpToPx(activity, 40), 1);
+                        0, dpToPx(activity, 36), 1);
                 danmakuTabParams.setMargins(0, 0, dpToPx(activity, 4), 0);
                 danmakuTabBtn.setLayoutParams(danmakuTabParams);
 
@@ -792,7 +802,7 @@ public class DanmakuUIHelper {
                 if (hasGoProxy) {
                     goProxyTabBtn = createTabButton(activity, "Go代理日志", false);
                     LinearLayout.LayoutParams goProxyTabParams = new LinearLayout.LayoutParams(
-                            0, dpToPx(activity, 40), 1);
+                            0, dpToPx(activity, 36), 1);
                     goProxyTabParams.setMargins(dpToPx(activity, 4), 0, 0, 0);
                     goProxyTabBtn.setLayoutParams(goProxyTabParams);
                 }
@@ -803,34 +813,18 @@ public class DanmakuUIHelper {
                 }
                 mainLayout.addView(tabContainer);
 
-                // 日志内容显示区域
-                ScrollView scrollView = new ScrollView(activity);
-                scrollView.setBackgroundColor(0xFFF5F5F5);
-                LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 350));
-                scrollView.setLayoutParams(scrollParams);
-                scrollView.setPadding(dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12));
-
-                TextView logText = new TextView(activity);
-                logText.setTextSize(12);
-                logText.setTextColor(TEXT_PRIMARY);
-                logText.setTypeface(android.graphics.Typeface.MONOSPACE);
-                logText.setText(DanmakuSpider.getLogContent());
-                scrollView.addView(logText);
-                mainLayout.addView(scrollView);
-
                 // 按钮区域
                 LinearLayout btnLayout = new LinearLayout(activity);
                 btnLayout.setOrientation(LinearLayout.HORIZONTAL);
                 btnLayout.setGravity(Gravity.CENTER);
-                btnLayout.setPadding(0, dpToPx(activity, 16), 0, 0);
+                btnLayout.setPadding(0, dpToPx(activity, 4), 0, 0);
 
                 Button sortButton = createStyledButtonWithBorder(activity, "排序: 正序", PRIMARY_COLOR);
                 Button clearButton = createStyledButtonWithBorder(activity, "清空", PRIMARY_COLOR);
-                Button closeButton = createStyledButton(activity, "关闭", PRIMARY_COLOR);
+                Button closeButton = createStyledButtonWithBorder(activity, "关闭", PRIMARY_COLOR);
 
                 LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                        0, dpToPx(activity, 44), 1);
+                        0, dpToPx(activity, 40), 1);
                 btnParams.setMargins(dpToPx(activity, 4), 0, dpToPx(activity, 4), 0);
 
                 sortButton.setLayoutParams(btnParams);
@@ -844,6 +838,17 @@ public class DanmakuUIHelper {
 
                 builder.setView(mainLayout);
                 AlertDialog dialog = builder.create();
+
+                // 设置对话框最大高度为屏幕高度的70%
+                dialog.setOnShowListener(d -> {
+                    android.view.Window window = dialog.getWindow();
+                    if (window != null) {
+                        android.view.WindowManager.LayoutParams params = window.getAttributes();
+                        params.width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.90);
+                        params.height = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.85);
+                        window.setAttributes(params);
+                    }
+                });
 
                 // 页签切换逻辑
                 final Button finalGoProxyTabBtn = goProxyTabBtn;
@@ -919,12 +924,35 @@ public class DanmakuUIHelper {
         button.setText(text);
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
+        // 设置焦点可用，支持电视端遥控器操作
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
+        button.setClickable(true);
         updateTabButtonState(button, isActive);
+
+        // 添加焦点变化监听，电视端高亮效果
+        button.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                // 获得焦点时显示高亮边框 - 使用加粗边框而不是缩放，避免覆盖其他按钮
+                ((Button) v).setBackground(createFocusedTabDrawable(PRIMARY_LIGHT));
+                ((Button) v).setTextColor(Color.WHITE);
+            } else {
+                // 失去焦点时恢复原始状态
+                // 需要根据当前激活状态恢复样式
+                boolean isCurrentlyActive = v.getTag() != null && (Boolean) v.getTag();
+                updateTabButtonState((Button) v, isCurrentlyActive);
+            }
+        });
+
+        // 保存激活状态到tag，用于焦点恢复时判断
+        button.setTag(isActive);
+
         return button;
     }
 
     // 更新页签按钮状态
     private static void updateTabButtonState(Button button, boolean isActive) {
+        if (button == null) return;
         if (isActive) {
             button.setTextColor(Color.WHITE);
             button.setBackground(createRoundedBackgroundDrawable(PRIMARY_COLOR));
@@ -932,6 +960,8 @@ public class DanmakuUIHelper {
             button.setTextColor(PRIMARY_COLOR);
             button.setBackground(createRoundedBorderDrawable(PRIMARY_COLOR));
         }
+        // 更新tag保存当前激活状态，用于焦点恢复时判断
+        button.setTag(isActive);
     }
 
 
