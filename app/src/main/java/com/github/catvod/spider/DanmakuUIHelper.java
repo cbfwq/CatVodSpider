@@ -59,6 +59,14 @@ public class DanmakuUIHelper {
     private static final int SHADOW_COLOR = 0x1A000000;         // 阴影色
     private static final int GRAY_INACTIVE = 0xFFBBBBBB;        // 灰色(未选中状态)
 
+    // ========== 电视端焦点高亮专用颜色 ==========
+    private static final int TV_FOCUS_BORDER_COLOR = 0xFF00D4FF;  // 高对比度青色边框 - 电视端焦点
+    private static final int TV_FOCUS_BG_COLOR = 0xFF007AFF;      // 焦点背景色 - 蓝色
+    private static final int TV_FOCUS_TEXT_COLOR = 0xFFFFFFFF;    // 焦点文字颜色 - 白色
+    private static final int TV_FOCUS_GLOW_COLOR = 0xFF00D4FF;    // 发光效果颜色
+    private static final int TV_INPUT_FOCUS_BG = 0xFFE3F2FD;      // 输入框焦点背景 - 浅蓝
+    private static final int TV_INPUT_FOCUS_BORDER = 0xFF007AFF;  // 输入框焦点边框
+
     // ========== 深色透明主题颜色 (from DanmakuUIHelper3) ==========
     private static final int DARK_BG_PRIMARY =  0xCC000000;     // 主背景色 - 半透明黑色
     private static final int DARK_BG_SECONDARY = 0x33FFFFFF;   // 次级背景色 - 更透明
@@ -510,29 +518,29 @@ public class DanmakuUIHelper {
     }
 
 
-    // 创建带边框的按钮 - 改进版本（排序、清空按钮使用）
+    // 创建带边框的按钮 - 电视端优化版本
     private static Button createStyledButtonWithBorder(Activity activity, String text, int color) {
         Button button = new Button(activity);
         button.setText(text);
         button.setTextColor(color);
-        button.setBackground(createRoundedBorderDrawable(color));
+        button.setBackground(createTVFocusableBorderDrawable(color, false));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
         // 启用焦点支持电视端
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
 
-        // 添加焦点效果 - 使用边框高亮而不是缩放
+        // 添加电视端焦点效果 - 高对比度发光边框
         button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
-                    // 获得焦点时显示填充背景
-                    ((Button) v).setBackground(createRoundedBackgroundDrawable(PRIMARY_LIGHT));
-                    ((Button) v).setTextColor(PRIMARY_COLOR);
+                    // 获得焦点时：发光边框 + 填充背景 + 白色文字
+                    ((Button) v).setBackground(createTVFocusableBorderDrawable(TV_FOCUS_BORDER_COLOR, true));
+                    ((Button) v).setTextColor(TV_FOCUS_TEXT_COLOR);
                 } else {
                     // 失去焦点时恢复边框样式
-                    ((Button) v).setBackground(createRoundedBorderDrawable(color));
+                    ((Button) v).setBackground(createTVFocusableBorderDrawable(color, false));
                     ((Button) v).setTextColor(color);
                 }
             }
@@ -541,19 +549,161 @@ public class DanmakuUIHelper {
         return button;
     }
 
-    // 创建实心按钮 - 改进版本（关闭按钮使用，无特殊焦点高亮）
+    // 创建实心按钮 - 电视端优化版本（带明显焦点高亮）
     private static Button createStyledButton(Activity activity, String text, int backgroundColor) {
         Button button = new Button(activity);
         button.setText(text);
         button.setTextColor(Color.WHITE);
-        button.setBackground(createRoundedBackgroundDrawable(backgroundColor));
+        button.setBackground(createTVFocusableSolidDrawable(backgroundColor, false));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
-        // 启用焦点支持电视端，但保持原有样式，不做特殊高亮
+        // 启用焦点支持电视端
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
 
+        // 添加电视端焦点效果 - 高对比度发光边框
+        button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    // 获得焦点时：加粗发光边框 + 高亮背景
+                    ((Button) v).setBackground(createTVFocusableSolidDrawable(backgroundColor, true));
+                    ((Button) v).setTextColor(TV_FOCUS_TEXT_COLOR);
+                } else {
+                    // 失去焦点时恢复原始样式
+                    ((Button) v).setBackground(createTVFocusableSolidDrawable(backgroundColor, false));
+                    ((Button) v).setTextColor(Color.WHITE);
+                }
+            }
+        });
+
         return button;
+    }
+
+    // ========== 电视端焦点高亮专用Drawable方法 ==========
+
+    /**
+     * 创建电视端可聚焦的边框按钮背景
+     * @param color 边框颜色
+     * @param focused 是否为焦点状态
+     */
+    private static android.graphics.drawable.Drawable createTVFocusableBorderDrawable(int color, boolean focused) {
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        if (focused) {
+            // 焦点状态：填充背景 + 加粗发光边框
+            drawable.setColor(TV_FOCUS_BG_COLOR);
+            drawable.setStroke(6, TV_FOCUS_BORDER_COLOR); // 6px加粗边框，高对比度
+            drawable.setCornerRadius(12);
+        } else {
+            // 非焦点状态：透明背景 + 细边框
+            drawable.setColor(Color.TRANSPARENT);
+            drawable.setStroke(2, color);
+            drawable.setCornerRadius(12);
+        }
+        return drawable;
+    }
+
+    /**
+     * 创建电视端可聚焦的实心按钮背景
+     * @param color 背景颜色
+     * @param focused 是否为焦点状态
+     */
+    private static android.graphics.drawable.Drawable createTVFocusableSolidDrawable(int color, boolean focused) {
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(12);
+        if (focused) {
+            // 焦点状态：加粗发光边框，背景色稍微变亮
+            drawable.setStroke(6, TV_FOCUS_BORDER_COLOR);
+            // 背景色稍微提亮，增强对比度
+            drawable.setColor(lightenColor(color, 0.15f));
+        } else {
+            drawable.setStroke(0, 0);
+        }
+        return drawable;
+    }
+
+    /**
+     * 创建电视端可聚焦的透明按钮背景（用于深色主题）
+     * @param color 背景颜色（带透明度）
+     * @param focused 是否为焦点状态
+     */
+    private static android.graphics.drawable.Drawable createTVFocusableTransparentDrawable(int color, boolean focused) {
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(12);
+        if (focused) {
+            // 焦点状态：加粗发光边框
+            drawable.setStroke(6, TV_FOCUS_BORDER_COLOR);
+            // 背景色稍微增加不透明度，增强对比度
+            drawable.setColor(lightenAlpha(color, 0.2f));
+        } else {
+            drawable.setStroke(0, 0);
+        }
+        return drawable;
+    }
+
+    /**
+     * 增加颜色透明度（让透明颜色更不透明一点）
+     */
+    private static int lightenAlpha(int color, float factor) {
+        int a = (color >> 24) & 0xFF;
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
+        // 增加alpha值（减少透明度）
+        int newA = Math.min(255, (int) (a + (255 - a) * factor));
+        return (newA << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * 创建电视端输入框背景
+     * @param focused 是否为焦点状态
+     * @param isDarkTheme 是否为深色主题
+     */
+    private static android.graphics.drawable.Drawable createTVInputDrawable(boolean focused, boolean isDarkTheme) {
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        if (focused) {
+            // 焦点状态：明显的浅蓝背景 + 蓝色边框
+            drawable.setColor(isDarkTheme ? 0x44007AFF : TV_INPUT_FOCUS_BG);
+            drawable.setStroke(4, TV_INPUT_FOCUS_BORDER);
+            drawable.setCornerRadius(8);
+        } else {
+            // 非焦点状态：普通背景
+            drawable.setColor(isDarkTheme ? DARK_BG_SECONDARY : BACKGROUND_LIGHT);
+            drawable.setStroke(2, isDarkTheme ? DARK_BORDER : BORDER_COLOR);
+            drawable.setCornerRadius(8);
+        }
+        return drawable;
+    }
+
+    /**
+     * 为输入框添加电视端焦点效果
+     */
+    private static void applyTVInputFocusEffect(EditText editText, boolean isDarkTheme) {
+        editText.setFocusable(true);
+        editText.setFocusableInTouchMode(true);
+        editText.setBackground(createTVInputDrawable(false, isDarkTheme));
+
+        editText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                ((EditText) v).setBackground(createTVInputDrawable(hasFocus, isDarkTheme));
+                if (hasFocus) {
+                    // 焦点时文字颜色加深，提示用户正在编辑
+                    ((EditText) v).setTextColor(isDarkTheme ? DARK_TEXT_PRIMARY : TEXT_PRIMARY);
+                }
+            }
+        });
+    }
+
+    // 颜色提亮辅助方法
+    private static int lightenColor(int color, float factor) {
+        int a = (color >> 24) & 0xFF;
+        int r = (int) Math.min(255, ((color >> 16) & 0xFF) + (255 - ((color >> 16) & 0xFF)) * factor);
+        int g = (int) Math.min(255, ((color >> 8) & 0xFF) + (255 - ((color >> 8) & 0xFF)) * factor);
+        int b = (int) Math.min(255, (color & 0xFF) + (255 - (color & 0xFF)) * factor);
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     // 创建圆角背景 - 带阴影效果
@@ -583,15 +733,6 @@ public class DanmakuUIHelper {
         return drawable;
     }
 
-    // 创建渐变背景
-    private static android.graphics.drawable.Drawable createGradientDrawable(int startColor, int endColor) {
-        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{startColor, endColor});
-        drawable.setCornerRadius(12);
-        return drawable;
-    }
-
     // 安全显示对话框的辅助方法
     private static void safeShowDialog(Activity activity, AlertDialog dialog) {
         if (activity != null && !activity.isFinishing() && !activity.isDestroyed() && !dialog.isShowing()) {
@@ -606,120 +747,6 @@ public class DanmakuUIHelper {
         }
     }
 
-
-    // 显示日志对话框
-    public static void showLogDialog(Context ctx) {
-        // 添加检查
-        if (!(ctx instanceof Activity)) {
-            DanmakuSpider.log("错误：Context不是Activity");
-            return;
-        }
-
-        Activity activity = (Activity) ctx;
-        if (activity.isFinishing() || activity.isDestroyed()) {
-            DanmakuSpider.log("Activity已销毁或正在销毁，不显示日志对话框");
-            return;
-        }
-        activity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // 在创建对话框前再次检查状态
-                    if (activity.isFinishing() || activity.isDestroyed()) {
-                        DanmakuSpider.log("Activity已销毁，不显示日志对话框");
-                        return;
-                    }
-
-                    AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-
-                    LinearLayout mainLayout = new LinearLayout(activity);
-                    mainLayout.setOrientation(LinearLayout.VERTICAL);
-                    mainLayout.setBackgroundColor(BACKGROUND_WHITE);
-
-                    // 创建标题部分
-                    LinearLayout titleLayout = new LinearLayout(activity);
-                    titleLayout.setOrientation(LinearLayout.VERTICAL);
-                    titleLayout.setBackgroundColor(PRIMARY_COLOR);
-                    titleLayout.setPadding(dpToPx(activity, 20), dpToPx(activity, 16), dpToPx(activity, 20), dpToPx(activity, 16));
-
-                    TextView titleText = new TextView(activity);
-                    titleText.setText("Leo弹幕日志 - 打包时间：2026-02-20 22:15");
-                    titleText.setTextSize(20);
-                    titleText.setTextColor(Color.WHITE);
-                    titleText.setTypeface(null, android.graphics.Typeface.BOLD);
-                    titleLayout.addView(titleText);
-
-                    mainLayout.addView(titleLayout);
-
-                    // 内容区域
-                    ScrollView scrollView = new ScrollView(activity);
-                    scrollView.setBackgroundColor(BACKGROUND_LIGHT);
-                    LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1);
-                    scrollView.setLayoutParams(scrollParams);
-
-                    TextView logView = new TextView(activity);
-                    logView.setText(DanmakuSpider.getLogContent());
-                    logView.setTextSize(11);
-                    logView.setTextColor(TEXT_SECONDARY);
-                    logView.setPadding(dpToPx(activity, 16), dpToPx(activity, 16), dpToPx(activity, 16), dpToPx(activity, 16));
-                    logView.setBackgroundColor(BACKGROUND_WHITE);
-                    logView.setTypeface(android.graphics.Typeface.MONOSPACE);
-                    logView.setLineSpacing(dpToPx(activity, 1), 1.4f);
-
-                    scrollView.addView(logView);
-                    mainLayout.addView(scrollView);
-
-                    // 按钮区域
-                    LinearLayout btnLayout = new LinearLayout(activity);
-                    btnLayout.setOrientation(LinearLayout.HORIZONTAL);
-                    btnLayout.setGravity(Gravity.CENTER);
-                    btnLayout.setPadding(dpToPx(activity, 16), dpToPx(activity, 12), dpToPx(activity, 16), dpToPx(activity, 12));
-                    btnLayout.setBackgroundColor(BACKGROUND_WHITE);
-
-                    Button clearButton = createStyledButton(activity, "清空", ACCENT_COLOR);
-                    Button closeButton = createStyledButtonWithBorder(activity, "关闭", PRIMARY_COLOR);
-
-                    LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                            0, dpToPx(activity, 44), 1);
-                    btnParams.setMargins(dpToPx(activity, 6), 0, dpToPx(activity, 6), 0);
-
-                    clearButton.setLayoutParams(btnParams);
-                    closeButton.setLayoutParams(btnParams);
-
-                    btnLayout.addView(clearButton);
-                    btnLayout.addView(closeButton);
-                    mainLayout.addView(btnLayout);
-
-                    builder.setView(mainLayout);
-                    AlertDialog dialog = builder.create();
-                    dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-                            dpToPx(activity, 500));
-
-                    clearButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            DanmakuSpider.clearLogs();
-                            dialog.dismiss();
-                            showLogDialog(ctx);
-                        }
-                    });
-
-                    closeButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            dialog.dismiss();
-                        }
-                    });
-
-                    safeShowDialog(activity, dialog);
-                } catch (Exception e) {
-                    DanmakuSpider.log("显示日志对话框异常: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
 
     /**
      * 显示带标签页切换的日志对话框（弹幕日志 + Go代理日志）
