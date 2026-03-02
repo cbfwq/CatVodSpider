@@ -42,8 +42,14 @@ public class LeoDanmakuService {
     }
 
     // 执行搜索
-    public static List<DanmakuItem> searchDanmaku(String keyword, Activity activity) {
-        if (TextUtils.isEmpty(keyword)) return new ArrayList<>();
+    public static List<DanmakuItem> searchDanmaku(EpisodeInfo episodeInfo, Activity activity) {
+        return searchDanmaku(episodeInfo, activity, false);
+    }
+
+    // 执行搜索（带是否使用集数标识）
+    public static List<DanmakuItem> searchDanmaku(EpisodeInfo episodeInfo, Activity activity, boolean useEpisodeNum) {
+        if (episodeInfo == null || episodeInfo.getEpisodeNames() == null || episodeInfo.getEpisodeNames().isEmpty()) return new ArrayList<>();
+        String keyword = episodeInfo.getEpisodeNames().get(0);
 
         final List<DanmakuItem> globalResults = Collections.synchronizedList(new ArrayList<DanmakuItem>());
 
@@ -64,7 +70,7 @@ public class LeoDanmakuService {
                 completionService.submit(new Callable<List<DanmakuItem>>() {
                     @Override
                     public List<DanmakuItem> call() throws Exception {
-                        return doSearch(url, keyword);
+                        return doSearch(url, episodeInfo, useEpisodeNum);
                     }
                 });
                 pendingTasks++;
@@ -128,12 +134,22 @@ public class LeoDanmakuService {
     }
 
     // 执行搜索
-    private static List<DanmakuItem> doSearch(String apiBase, String keyword) {
+    private static List<DanmakuItem> doSearch(String apiBase, EpisodeInfo episodeInfo) {
+        return doSearch(apiBase, episodeInfo, false);
+    }
+
+    // 执行搜索（带是否使用集数标识）
+    private static List<DanmakuItem> doSearch(String apiBase, EpisodeInfo episodeInfo, boolean useEpisodeNum) {
         List<DanmakuItem> list = new ArrayList<>();
         try {
+            String keyword = episodeInfo.getEpisodeNames().get(0);
             // 尝试多种API路径
             String searchUrl = apiBase + "/api/v2/search/episodes?anime=" +
                 URLEncoder.encode(keyword, "UTF-8");
+            // 如果 useEpisodeNum 为 true 且 episodeNum 不为空，拼接 episode 参数
+            if (useEpisodeNum && !TextUtils.isEmpty(episodeInfo.getEpisodeNum())) {
+                searchUrl += "&episode=" + URLEncoder.encode(episodeInfo.getEpisodeNum(), "UTF-8");
+            }
             DanmakuSpider.log("搜索URL: " + searchUrl);
 
             String json = NetworkUtils.robustHttpGet(searchUrl);
@@ -142,6 +158,10 @@ public class LeoDanmakuService {
             if (TextUtils.isEmpty(json)) {
                 searchUrl = apiBase + "/search/episodes?anime=" +
                     URLEncoder.encode(keyword, "UTF-8");
+                // 如果 useEpisodeNum 为 true 且 episodeNum 不为空，拼接 episode 参数
+                if (useEpisodeNum && !TextUtils.isEmpty(episodeInfo.getEpisodeNum())) {
+                    searchUrl += "&episode=" + URLEncoder.encode(episodeInfo.getEpisodeNum(), "UTF-8");
+                }
                 DanmakuSpider.log("回退搜索URL: " + searchUrl);
                 json = NetworkUtils.robustHttpGet(searchUrl);
             }
@@ -266,7 +286,8 @@ public class LeoDanmakuService {
         }
 
 
-        List<DanmakuItem> results = searchDanmaku(searchKeyword, activity);
+        // 自动搜索时使用集数参数
+        List<DanmakuItem> results = searchDanmaku(episodeInfo, activity, true);
 
         if (results.isEmpty()) {
             DanmakuSpider.log("自动搜索未找到任何结果 for keyword: " + searchKeyword);
@@ -302,7 +323,9 @@ public class LeoDanmakuService {
                                 String.format("_%d", epNum),   // 不补零格式，如 _1
                                 String.format("第%d期", epNum),
                                 String.format("第%02d集", epNum), // 补零格式，如 第01集
-                                String.format("第%02d期", epNum)  // 补零格式，如 第01期
+                                String.format("第%02d期", epNum),  // 补零格式，如 第01期
+                                String.format("_%02d", epNum), // 补零格式，如 _01
+                                String.format("_%dd", epNum)  // _1
                         };
 
                         boolean matchFound = false;
@@ -414,16 +437,15 @@ public class LeoDanmakuService {
         return costs[s2.length()];
     }
 
-    // 手动搜索
-    public static List<DanmakuItem> manualSearch(String keyword, Activity activity) {
+    // 手动搜索（不使用集数参数，显示全部集数供用户选择）
+    public static List<DanmakuItem> manualSearch(EpisodeInfo episodeInfo, Activity activity) {
         List<DanmakuItem> results = new ArrayList<>();
 
-        if (TextUtils.isEmpty(keyword)) return results;
+        if (episodeInfo == null || episodeInfo.getEpisodeNames() == null || episodeInfo.getEpisodeNames().isEmpty()) return results;
 
         try {
-            if (!TextUtils.isEmpty(keyword)) {
-                results = searchDanmaku(keyword, activity);
-            }
+            // 手动搜索时不使用集数参数，让用户能看到全部集数
+            results = searchDanmaku(episodeInfo, activity, false);
         } catch (Exception e) {
             DanmakuSpider.log("手动搜索失败: " + e.getMessage());
         }

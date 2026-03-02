@@ -1366,12 +1366,7 @@ public class DanmakuScanner {
                             DanmakuSpider.lastButtonClickTime = currentTime;
 
                             DanmakuSpider.log("[按钮点击] 打开搜索对话框");
-
-                            String title = "";
-                            if (lastEpisodeInfo != null && lastEpisodeInfo.getEpisodeNames() != null && !lastEpisodeInfo.getEpisodeNames().isEmpty()) {
-                                title = lastEpisodeInfo.getEpisodeNames().get(0);
-                            }
-                            DanmakuUIHelper.showSearchDialog(activity, title);
+                            DanmakuUIHelper.showSearchDialog(activity, lastEpisodeInfo);
                         }
                     }
                 });

@@ -993,7 +993,7 @@ public class DanmakuUIHelper {
 
 
     // 显示搜索对话框
-    public static void showSearchDialog(Activity activity, String initialKeyword) {
+    public static void showSearchDialog(Activity activity, EpisodeInfo episodeInfo) {
         // 检查Activity状态
         if (activity.isFinishing() || activity.isDestroyed()) {
             DanmakuSpider.log("Activity已销毁或正在销毁，不显示搜索对话框");
@@ -1035,6 +1035,8 @@ public class DanmakuUIHelper {
 
                     final EditText searchInput = new EditText(activity);
                     searchInput.setHint("输入关键词搜索弹幕...");
+                    String initialKeyword = episodeInfo != null && episodeInfo.getEpisodeNames() != null && !episodeInfo.getEpisodeNames().isEmpty() 
+                            ? episodeInfo.getEpisodeNames().get(0) : "";
                     String cachedKeyword = SharedPreferencesService.getSearchKeywordCache(activity, initialKeyword);
                     searchInput.setText(cachedKeyword);
                     searchInput.setHintTextColor(isTemplate3 ? DARK_TEXT_TERTIARY : TEXT_TERTIARY);
@@ -1119,12 +1121,14 @@ public class DanmakuUIHelper {
                                 return;
                             }
 
-                            if (!keyword.equals(initialKeyword)) {
-                                SharedPreferencesService.saveSearchKeywordCache(activity, initialKeyword, keyword);
-                                DanmakuSpider.log("已保存新的搜索缓存: " + initialKeyword + " -> " + keyword);
+                            String cacheKey = episodeInfo != null && episodeInfo.getEpisodeNames() != null && !episodeInfo.getEpisodeNames().isEmpty() 
+                                    ? episodeInfo.getEpisodeNames().get(0) : "";
+                            if (!keyword.equals(cacheKey)) {
+                                SharedPreferencesService.saveSearchKeywordCache(activity, cacheKey, keyword);
+                                DanmakuSpider.log("已保存新的搜索缓存: " + cacheKey + " -> " + keyword);
                             } else {
-                                SharedPreferencesService.saveSearchKeywordCache(activity, initialKeyword, "");
-                                DanmakuSpider.log("已清空搜索缓存: " + initialKeyword);
+                                SharedPreferencesService.saveSearchKeywordCache(activity, cacheKey, "");
+                                DanmakuSpider.log("已清空搜索缓存: " + cacheKey);
                             }
 
                             resultContainer.removeAllViews();
@@ -1139,7 +1143,16 @@ public class DanmakuUIHelper {
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    List<DanmakuItem> results = LeoDanmakuService.manualSearch(keyword, activity);
+                                    // 创建新的 EpisodeInfo 用于手动搜索（使用用户输入的关键词）
+                                    EpisodeInfo searchEpisodeInfo = new EpisodeInfo();
+                                    List<String> names = new ArrayList<>();
+                                    names.add(keyword);
+                                    searchEpisodeInfo.setEpisodeNames(names);
+                                    // 如果原 episodeInfo 有集数信息，保留它
+                                    if (episodeInfo != null && !TextUtils.isEmpty(episodeInfo.getEpisodeNum())) {
+                                        searchEpisodeInfo.setEpisodeNum(episodeInfo.getEpisodeNum());
+                                    }
+                                    List<DanmakuItem> results = LeoDanmakuService.manualSearch(searchEpisodeInfo, activity);
                                     if (isReversed) {
                                         java.util.Collections.reverse(results);
                                     }
@@ -1285,6 +1298,7 @@ public class DanmakuUIHelper {
                     if (!TextUtils.isEmpty(keywordToSearch)) {
                         searchBtn.performClick();
                     }
+                
                 } catch (Exception e) {
                     DanmakuSpider.log("显示搜索对话框异常: " + e.getMessage());
                     e.printStackTrace();

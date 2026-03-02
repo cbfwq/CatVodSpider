@@ -25,7 +25,12 @@ public class WebServer extends NanoHTTPD {
             Map<String, String> params = session.getParms();
             String keyword = params.get("keyword");
             Activity activity = Utils.getTopActivity();
-            List<DanmakuItem> results = LeoDanmakuService.manualSearch(keyword, activity);
+            // 创建 EpisodeInfo 对象用于远程搜索
+            EpisodeInfo episodeInfo = new EpisodeInfo();
+            java.util.List<String> names = new java.util.ArrayList<>();
+            names.add(keyword);
+            episodeInfo.setEpisodeNames(names);
+            List<DanmakuItem> results = LeoDanmakuService.manualSearch(episodeInfo, activity);
             return newFixedLengthResponse(new Gson().toJson(results));
         } else if (uri.equals("/select")) {
             Map<String, String> params = session.getParms();
