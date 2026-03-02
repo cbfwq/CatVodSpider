@@ -33,11 +33,19 @@ public class LeoDanmakuService {
         public boolean found = false;
         public double similarity = 0.0;
         public DanmakuItem item = null;
+        public String matchedName = null; // 实际参与相似度计算的名称
 
         public SearchResult(boolean found, double similarity, DanmakuItem item) {
             this.found = found;
             this.similarity = similarity;
             this.item = item;
+        }
+
+        public SearchResult(boolean found, double similarity, DanmakuItem item, String matchedName) {
+            this.found = found;
+            this.similarity = similarity;
+            this.item = item;
+            this.matchedName = matchedName;
         }
     }
 
@@ -296,6 +304,7 @@ public class LeoDanmakuService {
 
         // 3. 筛选匹配集数的结果 (如果集数信息可用)
         List<DanmakuItem> matchedItems = new ArrayList<>();
+        DanmakuSpider.log("📥 开始筛选，原始结果数: " + results.size() + "，集数要求: " + episodeInfo.getEpisodeNum());
         for (int i = 0; i < results.size(); i++) {
             DanmakuItem item = results.get(i);
 
@@ -304,6 +313,7 @@ public class LeoDanmakuService {
             // 检查年份匹配
             if (!TextUtils.isEmpty(episodeInfo.getEpisodeYear())) {
                 if (!item.title.contains(episodeInfo.getEpisodeYear())) {
+                    DanmakuSpider.log("  ❌ 年份不匹配: " + item.title + " (要求年份: " + episodeInfo.getEpisodeYear() + ")");
                     isMatch = false;
                 }
             }
@@ -336,6 +346,7 @@ public class LeoDanmakuService {
                             }
                         }
                         if (!matchFound) {
+                            DanmakuSpider.log("  ❌ 集数不匹配: " + item.epTitle + " (要求集数: " + episodeNum + ")");
                             isMatch = false;
                         }
                     }
@@ -346,13 +357,17 @@ public class LeoDanmakuService {
             }
 
             if (isMatch) {
+                DanmakuSpider.log("  ✅ 匹配成功: " + item.title + " - " + item.epTitle);
                 matchedItems.add(item);
             }
         }
+        DanmakuSpider.log("📤 筛选完成，匹配结果数: " + matchedItems.size());
 
 
         DanmakuItem selectedItem = null;
         double bestSimilarity = -1.0;
+        String bestMatchedName = null; // 记录最佳匹配时使用的名称
+        String bestSearchKeyword = null; // 记录最佳匹配时的搜索关键词
 
         // 4. 从筛选结果中选择最佳匹配
         // 使用的列表：如果 matchedItems 不为空则用它，否则用全部 results
@@ -383,16 +398,18 @@ public class LeoDanmakuService {
             if (similarity > bestSimilarity) {
                 bestSimilarity = similarity;
                 selectedItem = item;
+                bestMatchedName = titleToCompare; // 直接记录计算时使用的名称
+                bestSearchKeyword = s2; // 记录搜索关键词
             }
         }
 
         if (selectedItem != null) {
             String listName = !matchedItems.isEmpty() ? "筛选列表" : "全部结果";
             DanmakuSpider.log("🎯 在 " + listName + " 中自动搜索选择: " + selectedItem.title + " - " + selectedItem.epTitle + " (相似度: " + bestSimilarity + ")");
-            return new SearchResult(true, bestSimilarity, selectedItem);
+            return new SearchResult(true, bestSimilarity, selectedItem, bestMatchedName);
         }
 
-        return new SearchResult(false, 0, null);
+        return new SearchResult(false, 0, null, null);
     }
 
 

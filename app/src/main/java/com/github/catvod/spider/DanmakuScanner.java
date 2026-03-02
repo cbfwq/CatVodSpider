@@ -1024,8 +1024,21 @@ public class DanmakuScanner {
             return "";
         }
 
-        // 匹配常见的年份格式
-        Pattern yearPattern = Pattern.compile("(19|20)\\d{2}");
+        // 业内标准：优先提取 .S 或 S 之前的年份（刮削后的文件名格式）
+        // 例如：Love.Story.in.the.1970s.2026.S01E11... 应该提取 2026 而不是 1970
+        Pattern seasonPattern = Pattern.compile("[.\\s]?(\\d{4})[.\\s]?[Ss]\\d+");
+        Matcher seasonMatcher = seasonPattern.matcher(title);
+        if (seasonMatcher.find()) {
+            String year = seasonMatcher.group(1);
+            // 验证年份范围合理（1980-2030）
+            int yearNum = Integer.parseInt(year);
+            if (yearNum >= 1900 && yearNum <= 2030) {
+                return year;
+            }
+        }
+
+        // 备选：匹配常见的年份格式（排除 19xxs 或 20xxs 这样的年代格式）
+        Pattern yearPattern = Pattern.compile("(?<!\\d)(19|20)\\d{2}(?!\\s*[Ss])(?!\\d)");
         Matcher matcher = yearPattern.matcher(title);
 
         if (matcher.find()) {
@@ -1711,10 +1724,10 @@ public class DanmakuScanner {
                 LeoDanmakuService.SearchResult currentResult = LeoDanmakuService.autoSearch(name, episodeInfo, activity);
 
                 if (currentResult.found) {
-                    if (currentResult.similarity >= 0.5) {
-                        DanmakuSpider.log("✅ 找到高相似度结果 (>=50%)，立即推送并停止搜索");
+                    if (currentResult.similarity == 1.0) {
+                        DanmakuSpider.log("✅ 找到完全匹配结果，立即推送并停止搜索");
                         LeoDanmakuService.pushDanmakuDirect(currentResult.item, activity, true);
-                        return; // 找到满意结果，结束方法
+                        return; // 找到完全匹配结果，结束方法
                     }
 
                     if (bestResult == null || currentResult.similarity > bestResult.similarity) {
@@ -1723,13 +1736,21 @@ public class DanmakuScanner {
                 }
             }
 
-            if (bestResult != null) {
-                DanmakuSpider.log("🏁 迭代搜索结束，未找到高于50%相似度的结果。推送最佳匹配项 (相似度: " + bestResult.similarity + ")");
+            if (bestResult != null && bestResult.similarity >= 0.85) {
+                DanmakuSpider.log("🏁 迭代搜索结束，未找到完全匹配结果。推送最佳匹配项 (相似度: " + bestResult.similarity + ")");
                 LeoDanmakuService.pushDanmakuDirect(bestResult.item, activity, true);
             } else {
+                // 输出分析对比信息
+                String inputName = episodeInfo.getEpisodeNames().get(0);
+                if (bestResult != null && bestResult.item != null) {
+                    DanmakuSpider.log("📊 分析对比 - 输入剧名: " + inputName + ", 最佳匹配: " + bestResult.item.getTitle() + ", 相似度: " + bestResult.similarity + " (低于0.85阈值)");
+                } else {
+                    DanmakuSpider.log("📊 分析对比 - 输入剧名: " + inputName + ", 未找到任何匹配结果");
+                }
                 DanmakuSpider.log("🤷‍♂️ 迭代搜索结束，未找到任何有效弹幕");
                 if (activity != null && !activity.isFinishing()) {
-                    activity.runOnUiThread(() -> Utils.safeShowToast(activity, "Leo弹幕获取失败，请手动搜索"));
+//                    activity.runOnUiThread(() -> Utils.safeShowToast(activity, "Leo弹幕获取失败，请手动搜索"));
+                    DanmakuSpider.log("Leo弹幕获取失败，请手动搜索");
                 }
             }
         }).start();
